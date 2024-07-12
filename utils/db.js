@@ -10,18 +10,12 @@ class DBClient {
     const database = process.env.DB_DATABASE || 'files_manager';
     const url = `mongodb://${host}:${port}`;
     this.client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    this.client.connect()
     this.db = this.client.db(database);
-    (async () => {
-      try {
-          await this.client.connect();
-      } catch (error) {
-          console.error('Failed to connect to the database', error);
-      }
-    })();
   }
 
   isAlive() {
-    return this.client.isConnected();
+    return this.client.topology.isConnected();
   }
 
   async nbUsers() {
