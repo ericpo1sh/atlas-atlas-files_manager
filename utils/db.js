@@ -8,29 +8,28 @@ class DBClient {
     const uri = process.env.DB_URI;
     this.client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     this.db = null;
+    this.connected = false;
+
     this.client.connect().then(() => {
       const database = process.env.DB_DATABASE || 'files_manager';
       this.db = this.client.db(database);
+      this.connected = true;
     }).catch((err) => {
       console.error('MongoDB connection error:', err);
     });
   }
 
   async connect() {
-    if (!this.db) {
+    if (!this.connected) {
       await this.client.connect();
       const database = process.env.DB_DATABASE || 'files_manager';
       this.db = this.client.db(database);
+      this.connected = true;
     }
   }
 
-  async isAlive() {
-    try {
-      await this.connect();
-      return this.client.topology.isConnected();
-    } catch (err) {
-      return false;
-    }
+  isAlive() {
+    return this.connected;
   }
 
   async nbUsers() {
