@@ -1,10 +1,11 @@
 import redisClient from '../utils/redis.js';
 import dbClient from '../utils/db.js';
+import { model } from 'mongoose';
 
 class AppController {
   static async getStatus(req, res) {
     const redisStatus = redisClient.isAlive();
-    const dbStatus = await dbClient.isAlive();
+    const dbStatus = dbClient.isAlive();
 
     res.status(200).json({ redis: redisStatus, db: dbStatus });
   }
@@ -17,4 +18,4 @@ class AppController {
   }
 }
 
-export default AppController;
+module.exports = AppController
