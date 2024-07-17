@@ -14,6 +14,7 @@ class DBClient {
       const database = process.env.DB_DATABASE || 'files_manager';
       this.db = this.client.db(database);
       this.connected = true;
+      console.log('Connected to MongoDB');
     }).catch((err) => {
       console.error('MongoDB connection error:', err);
     });
@@ -25,6 +26,7 @@ class DBClient {
       const database = process.env.DB_DATABASE || 'files_manager';
       this.db = this.client.db(database);
       this.connected = true;
+      console.log('Connected to MongoDB');
     }
   }
 
