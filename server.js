@@ -6,7 +6,7 @@ dotenv.config();
 const app = express();
 const port = 5000 || process.env.PORT;
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '5gb' }));
 app.use('/', route);
 
 app.listen(port, () => {
