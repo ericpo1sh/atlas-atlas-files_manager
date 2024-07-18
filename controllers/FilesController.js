@@ -1,8 +1,6 @@
+// Import necessary modules and existing utility functions
 import dbClient from '../utils/db.js';
 import RedisClient from '../utils/redis';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { ObjectId } from 'mongodb';
 
 class FilesController {
@@ -133,6 +131,74 @@ class FilesController {
       return res.status(200).json(files);
     } catch (error) {
       console.error('Error in getIndex:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async putPublish(req, res) {
+    try {
+      const token = req.headers['x-token'];
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const key = `auth_${token}`;
+      const userId = await RedisClient.get(key);
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const fileId = req.params.id;
+      const file = await dbClient.db.collection('files').findOne({
+        _id: new ObjectId(fileId),
+        userId: new ObjectId(userId)
+      });
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      await dbClient.db.collection('files').updateOne(
+        { _id: new ObjectId(fileId) },
+        { $set: { isPublic: true } }
+      );
+
+      file.isPublic = true;
+      return res.status(200).json(file);
+    } catch (error) {
+      console.error('Error in putPublish:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async putUnpublish(req, res) {
+    try {
+      const token = req.headers['x-token'];
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const key = `auth_${token}`;
+      const userId = await RedisClient.get(key);
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const fileId = req.params.id;
+      const file = await dbClient.db.collection('files').findOne({
+        _id: new ObjectId(fileId),
+        userId: new ObjectId(userId)
+      });
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      await dbClient.db.collection('files').updateOne(
+        { _id: new ObjectId(fileId) },
+        { $set: { isPublic: false } }
+      );
+
+      file.isPublic = false;
+      return res.status(200).json(file);
+    } catch (error) {
+      console.error('Error in putUnpublish:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
