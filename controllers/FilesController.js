@@ -209,38 +209,46 @@ class FilesController {
 
   static async getFile(req, res) {
     try {
-      const fileId = req.params.id;
-      const token = req.headers['x-token'] || null;
+      const { id } = req.params;
+      const { size } = req.query;
 
-      const file = await dbClient.db.collection('files').findOne({ _id: new ObjectId(fileId) });
+      // Validate file ID
+      if (!ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      // Find file in database
+      const file = await dbClient.db.collection('files').findOne({ _id: new ObjectId(id) });
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
       }
 
-      if (!file.isPublic) {
-        if (!token) {
-          return res.status(404).json({ error: 'Not found' });
-        }
-
-        const key = `auth_${token}`;
-        const userId = await RedisClient.get(key);
-        if (!userId || userId.toString() !== file.userId.toString()) {
-          return res.status(404).json({ error: 'Not found' });
-        }
+      // Check if file is public or belongs to the authenticated user
+      const userId = await RedisClient.get(`auth_${req.headers['x-token']}`);
+      if (!file.isPublic && (!userId || userId !== file.userId.toString())) {
+        return res.status(404).json({ error: 'Not found' });
       }
 
+      // Ensure the file is not a folder
       if (file.type === 'folder') {
         return res.status(400).json({ error: "A folder doesn't have content" });
       }
 
-      if (!fs.existsSync(file.localPath)) {
+      // Construct file path
+      let filePath = file.localPath;
+      if (size) {
+        filePath = `${filePath}_${size}`;
+      }
+
+      // Check if the file exists
+      if (!fs.existsSync(filePath)) {
         return res.status(404).json({ error: 'Not found' });
       }
 
+      // Get MIME type and return the file
       const mimeType = mime.lookup(file.name);
       res.setHeader('Content-Type', mimeType);
-      const fileStream = fs.createReadStream(file.localPath);
-      fileStream.pipe(res);
+      fs.createReadStream(filePath).pipe(res);
     } catch (error) {
       console.error('Error in getFile:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
